@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 from pathlib import Path
 
-
 class PuzzleSolver:
 
     camera = None
@@ -84,6 +83,19 @@ class PuzzleSolver:
 
         return region
 
+    """Converts a captured frame into binary image
+    """
+    def frame_to_binary_image(self):
+
+        is_grayscale = self.captured_frame.ndim == 2
+
+        # if grayscale convert immediatley, else convert to grayscale first
+        if not is_grayscale:
+            self.captured_frame = cv2.cvtColor(self.captured_frame, cv2.COLOR_RGB2GRAY)
+
+        self.captured_frame  = cv2.threshold(self.captured_frame,0,255,cv2.THRESH_BINARY)[1]
+
+
     """Testing function - displays the captured frame stored in the self.captured_frame variable
     """
     def display_captured_frame(self):
@@ -107,18 +119,21 @@ class PuzzleSolver:
 
         if ratios is not None:
 
-            height, width, channels = image.shape
+            height = None
+            width = None
+            channels = None
+
+            if grayscale:
+                height, width = image.shape
+            else:
+                height, width, channels = image.shape
 
             loaded_image_resolution  = {
                 "width": width, 
                 "height": height
             }
 
-            print(loaded_image_resolution)
-
             region = self.get_region(ratios, loaded_image_resolution)
-
-            print(region)
 
             x_start = region[0]
             y_start = region[1]
@@ -138,5 +153,6 @@ class PuzzleSolver:
 
 p = PuzzleSolver()
 p.load_image_from_disk(p.script_dir_path.parent / "gfx" / "puzzle" / "1.png",p.ratios,False)
+p.frame_to_binary_image()
 p.save_image_to_disk(p.script_dir_path.parent / "gfx" / "testing" / "1.png")
 p.display_captured_frame()
