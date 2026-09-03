@@ -7,7 +7,6 @@ The brain of the operation - solves the puzzle
 import dxcam
 import cv2
 import numpy as np
-from PIL import Image
 from pathlib import Path
 
 
@@ -74,6 +73,7 @@ class PuzzleSolver:
         self.captured_frame = self.camera.grab_view(region)
 
     """Calculates the region to crop based on ratios and resolution
+    region format: (x1,y1,x2,y2)
     """
     def get_region(self, ratios: dict[str,str], resolution: dict[str,str]):
         # calculate the raw pixel values
@@ -98,28 +98,45 @@ class PuzzleSolver:
     """
     def load_image_from_disk(self, path : Path, ratios: dict[str,str] | None = None, grayscale : bool = True):
 
-        image = Image.open(path)
+        image = None
 
         if grayscale:
-            image = image.convert("L")
+            image = cv2.imread(path,cv2.IMREAD_GRAYSCALE)
+        else:
+            image = cv2.imread(path)
 
         if ratios is not None:
+
+            height, width, channels = image.shape
+
             loaded_image_resolution  = {
-                "width": image.width, 
-                "height": image.height
+                "width": width, 
+                "height": height
             }
+
+            print(loaded_image_resolution)
 
             region = self.get_region(ratios, loaded_image_resolution)
 
-            image = image.crop(region)
+            print(region)
 
-        frame_rgb = np.array(image)
+            x_start = region[0]
+            y_start = region[1]
+            x_end = region[2]
+            y_end = region[3]
 
-        if grayscale:
-            self.captured_frame = frame_rgb
-        else:
-            self.captured_frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+            image = image[y_start:y_end, x_start:x_end]
+
+        self.captured_frame = np.array(image)
+
+    """Testing function - saves the image to specified path from self.frame
+    """
+    def save_image_to_disk(self, path : Path):
+
+        cv2.imwrite(path, self.captured_frame)
+        
 
 p = PuzzleSolver()
 p.load_image_from_disk(p.script_dir_path.parent / "gfx" / "puzzle" / "1.png",p.ratios,False)
+p.save_image_to_disk(p.script_dir_path.parent / "gfx" / "testing" / "1.png")
 p.display_captured_frame()
